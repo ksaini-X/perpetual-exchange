@@ -1,4 +1,6 @@
 pub mod api;
+pub mod types;
+
 pub mod margin;
 pub mod registry;
 fn main() {

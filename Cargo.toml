@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 axum = "0.8.9"
+chrono = { version = "0.4.44", features = ["serde"] }
 redis = "1.2.1"
 rust_decimal = { version = "1.42.0", features = ["macros"] }
 serde = { version = "1.0.228", features = ["derive"] }
