@@ -3,20 +3,19 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::types::order::{order_type::OrderType, side::Side, status::Status};
+use crate::types::order::{side::Side, status::Status};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Order {
+    pub order_id: Uuid,
     pub user_id: Uuid,
     pub asset: String,
 
-    pub price: Option<Decimal>,
+    pub price: Decimal,
     pub leverage: Decimal,
     pub quantity: Decimal,
     pub margin: Decimal,
-
-    pub order_type: OrderType,
-
+    pub filled_quantity: Decimal,
     pub status: Status,
     pub side: Side,
 

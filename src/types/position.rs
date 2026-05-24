@@ -13,7 +13,7 @@ pub struct Position {
     pub status: Status,
     pub entry_price: Decimal,
     pub unrealised_pnl: Decimal,
-    pub liqudation_price: Decimal,
+    pub liquidation_price: Decimal,
     pub opened_at: Decimal,
     pub quantity: Decimal,
     pub leverage: Decimal,

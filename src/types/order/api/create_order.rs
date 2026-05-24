@@ -2,24 +2,19 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Serialize, Deserialize, Debug)]
+use crate::types::order::side::Side;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CreateOrderRequest {
-    user_id: Uuid,
-    asset: String,
+    pub user_id: Uuid,
+    pub asset: String,
 
-    order_type: CreateOrderType,
+    pub quantity: Decimal,
+    pub leverage: Decimal,
+    pub margin: Decimal,
+    pub side: Side,
 
-    quantity: Decimal,
-    leverage: Decimal,
-    margin: Decimal,
-
-    price: Option<Decimal>,
-}
-
-#[derive(Serialize, Debug, Deserialize)]
-pub enum CreateOrderType {
-    Market,
-    Limit,
+    pub price: Decimal,
 }
 
 #[derive(Deserialize, Debug, Serialize)]
