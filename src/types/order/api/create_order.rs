@@ -9,7 +9,6 @@ pub struct CreateOrderRequest {
     pub user_id: Uuid,
     pub asset: String,
 
-    pub quantity: Decimal,
     pub leverage: Decimal,
     pub margin: Decimal,
     pub side: Side,

@@ -48,21 +48,22 @@ impl Engine {
         let order_id: Uuid = Uuid::new_v4();
         let timestamp = Utc::now();
         let mut status: Status = Status::Open;
+        let quantity = (order.margin * order.leverage) / self.index_price;
 
         match order.side {
             Side::Long => {
                 let (executed_quantity, fills) = self.match_asks(&order, order_id);
                 if executed_quantity == dec!(0) {
                     status = Status::Pending
-                } else if executed_quantity < order.quantity {
+                } else if executed_quantity < quantity {
                     status = Status::PartialFilled(executed_quantity)
-                } else if executed_quantity == order.quantity {
+                } else if executed_quantity == quantity {
                     status = Status::Filled
                 }
                 if executed_quantity > dec!(0) {
                     let position_id = Uuid::new_v4();
 
-                    let liquidation_price = self.index_price
+                    let liquidation_price = order.price
                         - (dec!(1) - dec!(1) / order.leverage
                             + self.engine_config.maintainance_margin_rate);
 
@@ -87,7 +88,7 @@ impl Engine {
                         .push(position_id);
                 }
 
-                if executed_quantity < order.quantity {
+                if executed_quantity < quantity {
                     let order = Order {
                         asset: order.asset,
                         created_at: timestamp,
@@ -96,29 +97,83 @@ impl Engine {
                         margin: order.margin,
                         order_id,
                         price: order.price,
-                        quantity: order.quantity,
+                        quantity: quantity,
                         side: order.side,
                         status,
                         user_id: order.user_id,
                     };
                     self.bids.entry(order.price).or_default().push(order);
                 }
+                for fill in fills {
+                    self.trades.insert(fill.trade_id, fill);
+                }
             }
             Side::Short => {
-                let (executed_quantity, fills) = self.match_bids(order, order_id);
+                let (executed_quantity, fills) = self.match_bids(&order, order_id);
+                if executed_quantity == dec!(0) {
+                    status = Status::Pending
+                } else if executed_quantity < quantity {
+                    status = Status::PartialFilled(executed_quantity)
+                } else if executed_quantity == quantity {
+                    status = Status::Filled
+                }
+                if executed_quantity > dec!(0) {
+                    let position_id = Uuid::new_v4();
+                    let liquidation_price = order.price
+                        * (dec!(1) + dec!(1) / order.leverage
+                            - self.engine_config.maintainance_margin_rate);
+                    let position: Position = Position {
+                        position_id,
+                        asset: order.asset.clone(),
+                        user_id: order.user_id,
+                        side: Side::Short,
+                        status,
+                        entry_price: order.price,
+                        unrealised_pnl: dec!(0),
+                        liquidation_price,
+                        opened_at: self.index_price,
+                        quantity: executed_quantity,
+                        leverage: order.leverage,
+                    };
+                    self.positions.insert(position_id, position);
+                    self.liquidation_index
+                        .entry(liquidation_price)
+                        .or_default()
+                        .push(position_id);
+                }
+                if executed_quantity < quantity {
+                    let order = Order {
+                        asset: order.asset,
+                        created_at: timestamp,
+                        filled_quantity: executed_quantity,
+                        leverage: order.leverage,
+                        margin: order.margin,
+                        order_id,
+                        price: order.price,
+                        quantity: quantity,
+                        side: order.side,
+                        status,
+                        user_id: order.user_id,
+                    };
+                    self.asks.entry(order.price).or_default().push(order);
+                }
+                for fill in fills {
+                    self.trades.insert(fill.trade_id, fill);
+                }
             }
         }
     }
 
     pub fn match_bids(
         &mut self,
-        order: CreateOrderRequest,
+        order: &CreateOrderRequest,
         order_id: Uuid,
     ) -> (Decimal, Vec<Fill>) {
         //Order{Ask, price:101, qty:10}
         //Willing to sell 10 at 101
         let mut fills = Vec::<Fill>::new();
         let mut executed_quantity = dec!(0);
+        let quantity = (order.margin * order.leverage) / self.index_price;
 
         //bids - [99, 99.10, 99.20, 99.30 .....100]
         //bids needs rev()
@@ -132,8 +187,8 @@ impl Engine {
                 break;
             }
             for bid in bids.iter_mut() {
-                if order.price <= bid.price && executed_quantity < order.quantity {
-                    let quantity_left = order.quantity - executed_quantity;
+                if order.price <= bid.price && executed_quantity < quantity {
+                    let quantity_left = quantity - executed_quantity;
                     let quantity_matched =
                         std::cmp::min(quantity_left, bid.quantity - bid.filled_quantity);
                     executed_quantity += quantity_matched;
@@ -165,14 +220,15 @@ impl Engine {
 
         let mut executed_quantity = dec!(0);
         let mut fills = Vec::<Fill>::new();
+        let quantity = (order.margin * order.leverage) / self.index_price;
 
         for (price, asks) in self.asks.iter_mut() {
             if order.price < *price {
                 break;
             }
             for ask in asks.iter_mut() {
-                if order.price >= ask.price && executed_quantity < order.quantity {
-                    let quantity_left = order.quantity - executed_quantity;
+                if order.price >= ask.price && executed_quantity < quantity {
+                    let quantity_left = quantity - executed_quantity;
                     let matched_quantity =
                         std::cmp::min(quantity_left, ask.quantity - ask.filled_quantity);
                     executed_quantity += matched_quantity;
