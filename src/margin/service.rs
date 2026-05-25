@@ -74,6 +74,20 @@ impl MarginService {
             total: user.available + user.locked,
         })
     }
+
+    pub fn check_balance(&self, user_id: Uuid, amount: Decimal) -> Result<bool, &str> {
+        let user = self.balances.get(&user_id);
+        match user {
+            Some(balance) => {
+                if balance.available >= amount {
+                    Ok(true)
+                } else {
+                    Ok(false)
+                }
+            }
+            None => Err("Invalid User ID"),
+        }
+    }
 }
 
 #[derive(Serialize, Debug)]

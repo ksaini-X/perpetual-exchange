@@ -11,8 +11,8 @@ pub struct CreateOrderRequest {
 
     pub leverage: Decimal,
     pub margin: Decimal,
-    pub side: Side,
 
+    pub side: Side,
     pub price: Decimal,
 }
 
