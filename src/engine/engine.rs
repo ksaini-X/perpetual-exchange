@@ -17,16 +17,21 @@ use std::{
 };
 pub struct Engine {
     pub engine_config: EngineConfig,
+
+    pub current_price: Decimal,
+    pub insurance_fund: Decimal,
+
+    pub mark_price: Decimal,
+    pub price_history: VecDeque<Decimal>,
+
     pub bids: BTreeMap<Decimal, Vec<Order>>,
     pub asks: BTreeMap<Decimal, Vec<Order>>,
     pub liquidation_index: BTreeMap<Decimal, Vec<Uuid>>,
-    pub positions: HashMap<Uuid, Position>,
-    pub current_price: Decimal,
-    pub mark_price: Decimal,
-    pub price_history: VecDeque<Decimal>,
-    pub last_funding_time: DateTime<Utc>,
-    pub insurance_fund: Decimal,
+
     pub fills: HashMap<Uuid, Fill>,
+    pub positions: HashMap<Uuid, Position>,
+
+    pub last_funding_time: DateTime<Utc>,
     pub trades: Vec<Trade>,
 }
 
